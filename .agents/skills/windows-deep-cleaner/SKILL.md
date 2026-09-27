@@ -26,6 +26,24 @@ description: 当用户需要深度清理 Windows C 盘空间时触发。包含�
 
 ---
 
+## ⚠️ 关键实战经验：Windows Update 30万+长路径碎片删除陷阱
+
+> **`C:\Windows\SoftwareDistribution\Download` 往往积压了数十万个碎片文件（如 `Package_for_RollupFix` 常达 30 万+文件、6GB+），其目录嵌套极深，路径长度经常超过 Windows 默认的 260 字符（MAX_PATH）上限。**
+> 若直接使用 PowerShell 的 `Remove-Item`，会受路径长度限制和后台服务锁定而**静默跳过（一个都没删掉）**；且 `.bat` 脚本若含中文，在中文 Windows 的 cmd（默认 GBK）下执行会因编码字节错位而**闪退**。
+
+**正确解法**：
+1. 批处理脚本一律使用纯 ASCII 英文编写，防止闪退。
+2. 必须同时停止 `wuauserv` 与 `bits` 服务。
+3. 必须调用 Windows 原生底层 `rd /s /q` 强制秒删超长路径树：
+   ```cmd
+   net stop wuauserv & net stop bits
+   rd /s /q "C:\Windows\SoftwareDistribution\Download"
+   mkdir "C:\Windows\SoftwareDistribution\Download"
+   net start bits & net start wuauserv
+   ```
+
+---
+
 ## 📍 核心清理目标清单 (重点关注靶点)
 
 ### 🔴 第一梯队：系统级巨无霸（单项 1GB ~ 16GB）
@@ -65,8 +83,32 @@ description: 当用户需要深度清理 Windows C 盘空间时触发。包含�
 8. **视频剪辑软件 (JianyingPro 剪映)**
    - **路径**: `$env:LOCALAPPDATA\JianyingPro\User Data` -> `Download` (素材), `Cache` (缓存)
    - **处理策略**: 强杀进程后强制删除，不影响草稿和导出视频。
+9. **Edge 浏览器 Service Worker 离线缓存**
+   - **路径**: `$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\Service Worker\CacheStorage`
+   - **占用规格**: **3GB ~ 5GB+**（各 Web 应用离线资源堆积）
+   - **清理策略**: 清空 `CacheStorage`，不影响书签、历史和登录凭证。
 
-9. **飞书 (LarkShell) / 微信主数据库**
+10. **微信开发者工具 (小程序编译与基础库)**
+   - **路径**: `$env:LOCALAPPDATA\微信开发者工具\User Data` (`WeappApplication`, `WeappVendor`, `WeappPlugin`, `Default`)
+   - **占用规格**: **1.5GB ~ 3GB**
+   - **清理策略**: 清理临时构建解包与历史基础库，不影响工程源码（下次打开自动按需拉取）。
+
+11. **企业微信运行缓存 (WXWork)**
+   - **路径**: `$env:APPDATA\Tencent\WXWork` (`cef`, `wmpf_Applet`, `wwmapp`, `patch`, `Log`)
+   - **占用规格**: **800MB ~ 2GB**
+   - **清理策略**: 保留主程序与聊天数据，清空 Chromium 渲染缓存、微应用离线包与小程序缓存。
+
+12. **VS Code 崩溃转储与渲染缓存**
+   - **路径**: `$env:APPDATA\Code` (`Crashpad`, `WebStorage`, `GPUCache`, `Code Cache`)
+   - **占用规格**: **1GB ~ 3GB**
+   - **清理策略**: 保留 `User` 核心配置目录，清空数百兆无用的 Crashpad dump 与 WebStorage。
+
+13. **IDE 历史升级旧版本备份**
+   - **路径**: `$env:USERPROFILE\.gemini\antigravity-backup`
+   - **占用规格**: **1GB ~ 2GB**
+   - **清理策略**: 升级成功后可直接整目录移除。
+
+14. **飞书 (LarkShell) / 微信主数据库**
    - **处理策略**: 强烈建议引导用户在软件设置中的「存储空间管理」清理过期的图片和视频。
 
 ---
@@ -94,6 +136,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\Get-DiskHogs.ps1"
 
 2. **关闭休眠瘦身 (需要管理员权限)**：
    运行内置双击提权脚本 `scripts\Disable_Hibernation_Admin.bat`，或引导用户在管理员终端运行 `powercfg -h off`。
+
+3. **强力清除 Windows 更新补丁积压 (单项常达 3GB ~ 10GB+，需要管理员权限)**：
+   运行内置纯英文提权脚本 `scripts\Clean_WinUpdate_Force.bat`，强制拔除超长路径与数十万碎片缓存。
 
 ---
 

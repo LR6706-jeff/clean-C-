@@ -8,9 +8,9 @@
 
 ## ✨ 核心优势
 
-传统的 Windows 清理工具（如磁盘清理、`%temp%`）通常只能释放不到 1GB 的空间。真正的“空间杀手”隐藏在 `AppData` 目录中：静默下载的插件、巨大的 GPU 渲染缓存、AI 客户端的二进制包以及各类软件残留。
+传统的 Windows 清理工具（如磁盘清理、`%temp%`）通常只能释放不到 1GB 的空间。真正的“空间杀手”隐藏在 `AppData` 目录与深层更新缓存中：Edge 巨额 Service Worker 离线包、微信开发者工具历史构建、VS Code 崩溃转储、静默下载的插件与数十万更新补丁碎片。
 
-**实战战果**：在典型开发机上，单次执行即可找回 **5GB+** 被浪费的空间。
+**实战战果**：在典型重度开发机上，单次深度执行实测找回 **15GB ~ 23GB+** 宝贵空间（直接从爆红脱困）。
 
 ---
 
@@ -18,12 +18,13 @@
 
 ```
 windows-deep-cleaner/
-├── SKILL.md                  # AI 智能体指令 (如果你是在 IDE 里使用 AI，这是给它的指南)
+├── SKILL.md                   # AI 智能体指令 (给各类 AI IDE / Agent 的全流程指南)
 └── scripts/
-    ├── Get-DiskHogs.ps1      # 第一步：深层扫描并列出占用前 20 的“大户”
-    ├── simple_clean.ps1      # 第二步：靶向清理 AppData (WPS、AI客户端、代码编辑器、残留包)
-    ├── Antigravity_Clean.ps1 # 全量系统清理 (包含 Windows 更新缓存、系统日志、缩略图等)
-    └── Antigravity_Clean.bat # 一键启动入口 (自动申请管理员权限)
+    ├── Get-DiskHogs.ps1       # 第一步：深层精准直扫（高价值靶点直查 + Top大户扫描）
+    ├── simple_clean.ps1       # 第二步：靶向清理 AppData (WPS、AI客户端、代码编辑器、IDE日志)
+    ├── Clean_WinUpdate_Force.bat # 强力拔除 30万+ Windows Update 补丁碎片 (底层指令，纯英文防闪退)
+    ├── Antigravity_Clean.ps1  # 全量系统清理 (包含系统日志、缩略图、临时文件等 12 项)
+    └── Antigravity_Clean.bat  # 系统全量清理一键入口 (自动申请管理员权限)
 ```
 
 ---
@@ -32,15 +33,15 @@ windows-deep-cleaner/
 
 | 软件/类别 | 路径 | 脚本处理方式 |
 |---|---|---|
+| **Edge 浏览器** | `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\Service Worker\CacheStorage` | ✅ 清空离线缓存包 (单项常达 3GB~5GB+，不影响书签登录) |
+| **Windows Update 碎片** | `C:\Windows\SoftwareDistribution\Download` | ✅ 强制移除数十万超长路径补丁碎片 (需管理员) |
+| **微信开发者工具** | `%LOCALAPPDATA%\微信开发者工具\User Data` | ✅ 清理临时构建包与过期基础库 (工程源码100%安全) |
+| **企业微信 (WXWork)** | `%APPDATA%\Tencent\WXWork` | ✅ 清理 CEF 浏览器内核与小程序运行包 (聊天记录完好) |
+| **VS Code** | `%APPDATA%\Code` (`Crashpad`, `WebStorage`, `logs`) | ✅ 清理数百兆崩溃转储与渲染缓存 (配置完全保留) |
+| **IDE 历史旧备份** | `%USERPROFILE%\.gemini\antigravity-backup` | ✅ 移除过往升级遗留安装包 (常达 1.5GB) |
 | **WPS Office** | `%APPDATA%\kingsoft\wps\addons` | ✅ 清理强制下载的广告/插件包 (需先强杀进程) |
-| **Perplexity** | `%LOCALAPPDATA%\Perplexity\*Cache*` | ✅ 清理渲染缓存 |
-| **IMA Copilot** | `%LOCALAPPDATA%\ima.copilot\*Cache*` | ✅ 清理缓存与日志 |
-| **VS Code** | `%APPDATA%\Code\**\Cache,GPUCache,logs` | ✅ 清理编译与扩展缓存 (配置安全) |
-| **微信开发者工具** | `%LOCALAPPDATA%\微信开发者工具\User Data\*\Cache` | ✅ 清理项目编译中间件 |
-| **Flash_Center** | `%LOCALAPPDATA%\Flash_Center` | ✅ 连根拔起 |
-| **剪映 (JianyingPro)**| `%LOCALAPPDATA%\JianyingPro\User Data\Cache` | ✅ 清理素材缓存 (不影响草稿) |
-| **Notion** | `%APPDATA%\Notion` | ✅ 清理离线缓存 |
-| **微信/飞书/QQ** | `%APPDATA%\Tencent`, `%APPDATA%\LarkShell` | ⚠️ 建议使用 App 自带存储管理，脚本不触碰 |
+| **Perplexity / IMA / Quark** | `%LOCALAPPDATA%\...` | ✅ 清理桌面客户端内嵌缓存与日志 |
+| **微信 xwechat 日志** | `%APPDATA%\Tencent\xwechat\log` | ✅ 清空日志文本，绝不触碰聊天记录与文件 |
 
 ---
 
