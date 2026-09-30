@@ -1,84 +1,90 @@
-# 🧹 Windows C盘深度清理专家 (Windows Deep Cleaner Skill)
+# 🧹 Windows C 盘极限深度瘦身专家 (Windows Deep Cleaner)
 
-> 专门针对 AppData 目录中“顽固大户”的 AI 辅助清理工具 —— 找回那些被常规清理工具遗忘的空间。
+> **工业级 Windows 系统盘瘦身规范与靶向清理工具包**  
+> 专门针对 `AppData` 顽固缓存、30万+ Windows Update 超长路径碎片、系统级休眠以及被 `TrustedInstaller` 锁死的幽灵目录 —— 找回被常规清理工具遗忘的 15GB ~ 35GB+ 宝贵空间。
 
 [English Version](./README_EN.md) | **中文说明**
 
 ---
 
-## ✨ 核心优势
+## ✨ 为什么常规清理工具“扫不出几个 G”？
 
-传统的 Windows 清理工具（如磁盘清理、`%temp%`）通常只能释放不到 1GB 的空间。真正的“空间杀手”隐藏在 `AppData` 目录与深层更新缓存中：Edge 巨额 Service Worker 离线包、微信开发者工具历史构建、VS Code 崩溃转储、静默下载的插件与数十万更新补丁碎片。
+传统的 Windows 清理工具（如系统磁盘清理、清除 `%temp%`）通常只能挤出几百 MB 空间。真正的“空间杀手”隐藏在系统底层与深层应用沙箱中：
 
-**实战战果**：在典型重度开发机上，单次深度执行实测找回 **15GB ~ 23GB+** 宝贵空间（直接从爆红脱困）。
+1. **Windows Update 30万+碎片积压**：`SoftwareDistribution\Download` 经常堆积 5GB ~ 10GB 累积更新，且目录深度超过 260 字符（MAX_PATH），常规脚本会直接静默跳过。
+2. **多盘迁移幽灵锁死**：曾把“新应用保存位置”改到其他盘后，留下的 `WindowsApps` / `DeliveryOptimization` 被 `TrustedInstaller` 锁死，管理员右键直接报“拒绝访问”。
+3. **身在 D 盘，魂在 C 盘**：常用软件（微信、飞书、剪映、IDE、浏览器）主体装在 D 盘，但其 CEF 渲染内核、离线 Service Worker、运行时日志全部默认塞在 `C:\Users\...\AppData`。
+4. **系统休眠硬扣快照**：`hiberfil.sys` 默认强行划走物理内存容量的 40% ~ 80%（6GB ~ 16GB）。
 
 ---
 
-## 📁 目录结构
+## 📁 目录结构与工具清单
 
 ```
 windows-deep-cleaner/
-├── SKILL.md                   # AI 智能体指令 (给各类 AI IDE / Agent 的全流程指南)
+├── SKILL.md                          # AI 智能体执行指令 (符合 CODEX 标准的刚性规范)
+├── README.md                         # 项目中文说明
 └── scripts/
-    ├── Get-DiskHogs.ps1       # 第一步：深层精准直扫（高价值靶点直查 + Top大户扫描）
-    ├── simple_clean.ps1       # 第二步：靶向清理 AppData (WPS、AI客户端、代码编辑器、IDE日志)
-    ├── Clean_WinUpdate_Force.bat # 强力拔除 30万+ Windows Update 补丁碎片 (底层指令，纯英文防闪退)
-    ├── Antigravity_Clean.ps1  # 全量系统清理 (包含系统日志、缩略图、临时文件等 12 项)
-    └── Antigravity_Clean.bat  # 系统全量清理一键入口 (自动申请管理员权限)
+    ├── Get-DiskHogs.ps1              # 第一步：深层只读盘点（元数据快速扫描，不改不删）
+    ├── simple_clean.ps1              # 第二步：无损应用缓存清理（AppData / IDE / 日志）
+    ├── Clean_WinUpdate_Force.bat     # 强力拔除数十万超长路径 Windows Update 补丁碎片 (纯英文防闪退)
+    ├── Clean_D_Root_Locked_Folders.bat # 强力夺权并清空被 TrustedInstaller 锁死的多盘应用目录
+    ├── Antigravity_Clean.ps1         # 12 大项全量系统深度清理核心逻辑
+    └── Antigravity_Clean.bat         # 12 大项系统全量清理一键运行入口 (自动提权)
 ```
 
 ---
 
-## 🎯 清理靶点
+## 🎯 核心清理靶点与处理方式
 
-| 软件/类别 | 路径 | 脚本处理方式 |
-|---|---|---|
-| **Edge 浏览器** | `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\Service Worker\CacheStorage` | ✅ 清空离线缓存包 (单项常达 3GB~5GB+，不影响书签登录) |
-| **Windows Update 碎片** | `C:\Windows\SoftwareDistribution\Download` | ✅ 强制移除数十万超长路径补丁碎片 (需管理员) |
-| **微信开发者工具** | `%LOCALAPPDATA%\微信开发者工具\User Data` | ✅ 清理临时构建包与过期基础库 (工程源码100%安全) |
-| **企业微信 (WXWork)** | `%APPDATA%\Tencent\WXWork` | ✅ 清理 CEF 浏览器内核与小程序运行包 (聊天记录完好) |
-| **VS Code** | `%APPDATA%\Code` (`Crashpad`, `WebStorage`, `logs`) | ✅ 清理数百兆崩溃转储与渲染缓存 (配置完全保留) |
-| **IDE 历史旧备份** | `%USERPROFILE%\.gemini\antigravity-backup` | ✅ 移除过往升级遗留安装包 (常达 1.5GB) |
-| **WPS Office** | `%APPDATA%\kingsoft\wps\addons` | ✅ 清理强制下载的广告/插件包 (需先强杀进程) |
-| **Perplexity / IMA / Quark** | `%LOCALAPPDATA%\...` | ✅ 清理桌面客户端内嵌缓存与日志 |
-| **微信 xwechat 日志** | `%APPDATA%\Tencent\xwechat\log` | ✅ 清空日志文本，绝不触碰聊天记录与文件 |
+| 目标分类 | 典型路径 | 占用规格 | 安全清理策略与说明 |
+|---|---|---|---|
+| **Windows Update 碎片** | `C:\Windows\SoftwareDistribution\Download` | **3GB ~ 10GB** | 停止更新服务，调用底层 `rd /s /q` 击穿超长路径秒删 |
+| **多盘锁死目录** | `D:\WindowsApps`, `D:\DeliveryOptimization` | **2GB ~ 20GB** | `takeown` 夺权 + `icacls` 赋权后彻底移除残留 |
+| **Edge 浏览器离线包** | `%LOCALAPPDATA%\Microsoft\Edge\...\CacheStorage` | **2GB ~ 5GB+** | 清空 Service Worker 离线包，不影响书签与登录凭证 |
+| **微信 xwechat 日志** | `%APPDATA%\Tencent\xwechat\log` | **800MB ~ 3GB** | 仅清空运行 text 日志，聊天记录与文件 100% 毫发无损 |
+| **微信开发者工具** | `%LOCALAPPDATA%\微信开发者工具\User Data` | **1.5GB ~ 3GB** | 清理临时构建解包与历史基础库，不影响工程源码 |
+| **企业微信 (WXWork)** | `%APPDATA%\Tencent\WXWork` | **1GB ~ 3GB** | 清理 CEF 渲染与小程序离线包，保留聊天记录 |
+| **代码编辑器崩溃 Dump**| `%APPDATA%\Code` (`Crashpad`, `WebStorage`) | **500MB ~ 2GB** | 清空崩溃转储与垃圾缓存，配置和扩展完全保留 |
+| **系统休眠文件** | `C:\hiberfil.sys` | **6GB ~ 16GB** | 管理员执行 `powercfg -h off` 一次性释放并永不复发 |
 
 ---
 
-## 🚀 如何使用
+## 🚀 推荐清理工作流（四步闭环）
 
-### 选项 A：全量系统清理 (最推荐)
-右键点击 `scripts\Antigravity_Clean.bat`，选择 **以管理员身份运行**。它会自动执行 Windows 全量清理（包含更新补丁缓存、回收站等 12 个类别）。
-
-### 选项 B：靶向 AppData 清理 (如果你想清除 AppData 里的缓存)
-在 PowerShell 中运行：
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\simple_clean.ps1
-```
-
-### 选项 C：先看看谁在吃空间 (只扫描不删除)
+### 第一步：只读基准盘点（先看谁在吃空间，不盲目删除）
+在终端运行：
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\Get-DiskHogs.ps1
 ```
+> 严格记录各卷容量与真实占用，区分“逻辑大小”与“卷物理增量”，杜绝盲目承诺。
+
+### 第二步：拔除超大系统级更新碎片（需管理员）
+双击运行 **`scripts\Clean_WinUpdate_Force.bat`**：
+自动停止更新服务，使用 Windows 原生底层指令清空数十万个长路径下载碎片并自动重启服务。
+
+### 第三步：清理被锁死的多盘系统残留（如 D:\WindowsApps）
+若曾在其他盘保存过 Windows 商店应用且删不掉：
+1. 先在 **Windows 设置 -> 系统 -> 存储 -> 保存新内容的地方** 将“新应用”改回 C 盘；
+2. 双击运行 **`scripts\Clean_D_Root_Locked_Folders.bat`**，秒级夺权并连根拔除。
+
+### 第四步：全量系统日常清理
+双击运行 **`scripts\Antigravity_Clean.bat`**，一键完成 12 项无损垃圾与应用缓存清理。
 
 ---
 
-## ⚠️ 避坑指南：PowerShell 编码问题
+## 🛡️ 刚性安全红线 (Safety Guardrails)
 
-如果你在中文 Windows 上自己写 PowerShell 脚本，请记住：**`Write-Host` 输出中严禁包含中文字符**，否则会触发 `TerminatorExpectedAtEndOfString` 错误导致脚本崩溃。
-
-本项目的 `scripts/` 目录下所有 `.ps1` 文件均已通过**全英文输出**规避了此问题。
-
----
-
-## 🛡️ 安全原则
-
-- **绝不**触碰聊天记录（WeChat/Lark/QQ）。
-- **绝不**清理设置文件（settings.json）。
-- 所有脚本在清理前都会尝试 `Stop-Process` 强杀对应进程，防止文件占用报错。
+1. **严禁破坏系统与应用 ACL 权限**：清理仅针对具体缓存文件执行 `Remove-Item`，**绝不重置或修改 `AppData` 的权限继承**，严防导致 Electron / Chromium 应用（如 Gemini、DeepSeek 桌面端）因低权限沙箱读不到 `icudtl.dat` 而崩溃。
+2. **严禁触碰核心生产力数据**：
+   - 绝不碰微信 / 飞书 / 企业微信的核心聊天数据库与接收文件；
+   - 绝不将剪映的工程草稿、用户已导入素材误当成缓存删除；
+   - 绝不粗暴清空 WPS `wps\addons`（可能含有正在使用的正规插件）。
+3. **规避 PowerShell 中文编码陷阱**：所有 `.ps1` 脚本的 `Write-Host` 输出与路径变量全程采用纯 ASCII / 英文，彻底杜绝中文 Windows 上的 `TerminatorExpectedAtEndOfString` 语法崩溃。
+4. **批处理 `/k` 防闪退保障**：所有管理员提权批处理均采用保持窗口模式，即使出错也会完整保留错误日志，拒绝瞬间闪退。
 
 ---
 
 ## 📜 许可证
 
-MIT License - 你可以自由地分享、修改和使用。欢迎 Star 关注！
+MIT License - 自由使用、分发与修改。欢迎提 PR 与 Issue！
