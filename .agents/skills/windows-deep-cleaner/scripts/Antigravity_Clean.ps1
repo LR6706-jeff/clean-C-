@@ -82,13 +82,13 @@ Clear-RecycleBin -Force -ErrorAction SilentlyContinue
 Write-Host "  +-- OK  Recycle Bin emptied" -ForegroundColor Green
 Write-Host ""
 
-# 03 Windows Update download cache (use native rd /s /q to bypass MAX_PATH 260 limit)
+# 03 Windows Update download cache (use native rd /s /q + Get-DiskFree delta to avoid 300k file enumeration freeze)
 Write-Host "  +-- [03] Windows Update Download Cache" -ForegroundColor Yellow
 Stop-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
 Stop-Service -Name bits -Force -ErrorAction SilentlyContinue
-$b3 = Get-FolderSize @("C:\Windows\SoftwareDistribution\Download")
+$b3 = Get-DiskFree
 cmd.exe /c 'rd /s /q "C:\Windows\SoftwareDistribution\Download" & mkdir "C:\Windows\SoftwareDistribution\Download"' 2>&1 | Out-Null
-$f3 = [Math]::Max(0, $b3 - (Get-FolderSize @("C:\Windows\SoftwareDistribution\Download")))
+$f3 = [Math]::Max(0, (Get-DiskFree) - $b3)
 Start-Service -Name bits -ErrorAction SilentlyContinue
 Start-Service -Name wuauserv -ErrorAction SilentlyContinue
 Write-Host "  +-- OK  Freed: $(Format-Bytes $f3)" -ForegroundColor $(if ($f3 -gt 0) { "Green" } else { "DarkGray" })
