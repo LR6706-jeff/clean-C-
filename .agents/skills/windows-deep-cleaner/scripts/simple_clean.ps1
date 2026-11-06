@@ -38,28 +38,37 @@ if (Test-Path "$user\.cache") { Remove-Item "$user\.cache\*" -Recurse -Force -Er
 if (Test-Path "$local\npm-cache") { Remove-Item "$local\npm-cache\*" -Recurse -Force -ErrorAction SilentlyContinue }
 if (Test-Path "$user\.codex") { Remove-Item "$user\.codex\*" -Recurse -Force -ErrorAction SilentlyContinue }
 
-$codePaths = @("$app\Code", "$app\CodeBuddy CN", "$user\.vscode")
+$codePaths = @("$app\Code", "$app\CodeBuddy CN", "$app\Cursor", "$user\.vscode")
 foreach ($path in $codePaths) {
     if (Test-Path $path) {
-        $targets = @("Cache", "Code Cache", "CachedData", "CachedExtensionVSIXs", "GPUCache", "logs")
+        $targets = @("Cache", "Code Cache", "CachedData", "CachedExtensionVSIXs", "GPUCache", "WebStorage", "logs")
         foreach ($t in $targets) {
             Get-ChildItem -Path $path -Filter $t -Recurse -ErrorAction SilentlyContinue |
                 ForEach-Object { Remove-Item $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
         }
     }
 }
+if (Test-Path "$user\.workbuddy\traces") { Remove-Item "$user\.workbuddy\traces\*" -Recurse -Force -ErrorAction SilentlyContinue }
 Write-Host "  Done" -ForegroundColor Green
 
-# --- 4. Tencent Client Logs & Audio/Video Cache (Chat Data Safe) ---
-Write-Host "[4/7] Tencent client logs & audio/video caches (xwechat logs, WeMeet, QQLive)..." -ForegroundColor Yellow
-if (Test-Path "$app\Tencent\xwechat\log") {
-    Remove-Item "$app\Tencent\xwechat\log\*" -Recurse -Force -ErrorAction SilentlyContinue
+# --- 4. Tencent Client Logs, Update Packages & Mini-Program Caches (Chat Data Safe) ---
+Write-Host "[4/7] Tencent client logs, update packages & caches (xwechat, WXWork, WeMeet, QQLive)..." -ForegroundColor Yellow
+$tencentCleanPaths = @(
+    "$app\Tencent\xwechat\log\*",
+    "$app\Tencent\xwechat\update\*",
+    "$app\Tencent\xwechat\radium\web\*",
+    "$app\Tencent\WXWork\upgrade\*",
+    "$app\Tencent\WXWork\wmpf_Applet\*",
+    "$app\Tencent\QQLive\*"
+)
+foreach ($tp in $tencentCleanPaths) {
+    if (Test-Path $tp) { Remove-Item $tp -Recurse -Force -ErrorAction SilentlyContinue }
 }
 if (Test-Path "$app\Tencent\WeMeet") {
     Get-ChildItem "$app\Tencent\WeMeet" -Recurse -Include "*Cache*", "*logs*" | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 }
-if (Test-Path "$app\Tencent\QQLive") {
-    Remove-Item "$app\Tencent\QQLive\*" -Recurse -Force -ErrorAction SilentlyContinue
+if (Test-Path "$user\Documents\BaiduNetdiskTmp") {
+    Remove-Item "$user\Documents\BaiduNetdiskTmp\*" -Recurse -Force -ErrorAction SilentlyContinue
 }
 Write-Host "  Done" -ForegroundColor Green
 
@@ -70,11 +79,17 @@ if (Test-Path "C:\`$WINDOWS.~BT") {
 }
 Write-Host "  Done" -ForegroundColor Green
 
-# --- 6. Antigravity / Gemini Brain Session Logs ---
-Write-Host "[6/7] Antigravity IDE session brain logs (.gemini\antigravity-ide\brain)..." -ForegroundColor Yellow
+# --- 6. Antigravity / Gemini Brain Session Logs & Worktrees ---
+Write-Host "[6/7] Antigravity IDE session logs & worktrees..." -ForegroundColor Yellow
 if (Test-Path "$user\.gemini\antigravity-ide\brain") {
     Get-ChildItem "$user\.gemini\antigravity-ide\brain" -ErrorAction SilentlyContinue |
         ForEach-Object { Remove-Item $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
+}
+if (Test-Path "$user\.gemini\antigravity\log") {
+    Remove-Item "$user\.gemini\antigravity\log\*" -Recurse -Force -ErrorAction SilentlyContinue
+}
+if (Test-Path "$user\.gemini\antigravity\worktrees") {
+    Remove-Item "$user\.gemini\antigravity\worktrees\*" -Recurse -Force -ErrorAction SilentlyContinue
 }
 Write-Host "  Done" -ForegroundColor Green
 
