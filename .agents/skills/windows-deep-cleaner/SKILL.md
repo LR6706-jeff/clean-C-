@@ -15,6 +15,12 @@ description: 排查 Windows C 盘空间占用并清理已确认的缓存、升�
 powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\Get-DiskHogs.ps1"
 ```
 
+## 标准提权清理入口（禁止在桌面重复新建 .bat）
+
+- **核心清理引擎**：[scripts/Antigravity_Clean.ps1](scripts/Antigravity_Clean.ps1)（已内置 12+1 项系统级深度清理、原生 `rd /s /q` 突破 260 字符限制清理 Windows Update 缓存、WorkBuddy/pip/npm 缓存清理及前后空间对比）。
+- **桌面唯一启动器**：`C:\Users\杰文\Desktop\DeepClean.bat`（纯英文极简命名，自动 UAC 提权调用上述 `Antigravity_Clean.ps1`）。
+- **规范**：需要新增系统级提权清理项时，直接升级更新 `scripts/Antigravity_Clean.ps1`，让用户双击桌面现有的 `DeepClean.bat` 即可，**严禁在桌面另行创建第二个 `.bat` 文件**。
+
 脚本记录卷容量、剩余空间、根目录占用、各级目录、大文件、访问失败及跳过的链接。不读取文件内容，不删除文件，不修改权限。通过当前环境实际可用的命令工具运行；读取受限时按环境的权限流程处理，不要把“拒绝访问”或空结果当作 0 字节。
 
 盘点应覆盖下列类别，并先解释最大的几项：
@@ -34,9 +40,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\Get-DiskHogs.ps1"
 
 ## 关键实战陷阱与技术规范
 
-### 1. PowerShell 中文编码解析陷阱
-在中文 Windows 系统上执行 PowerShell 脚本时，代码或输出中若直接包含中文字符，极易触发 `TerminatorExpectedAtEndOfString` 解析错误导致崩溃。
-**规范**：脚本中的逻辑与输出必须保持纯 ASCII / 英文，或使用环境变量安全拼接。
+### 1. PowerShell 与 .bat 批处理中文编码解析陷阱（防闪退铁律）
+- **PowerShell 陷阱**：在中文 Windows 系统上执行内联 PowerShell 时，若直接包含中文字符或双引号嵌套，极易触发 `TerminatorExpectedAtEndOfString` 解析错误。优先使用独立的 Python 脚本完成扫描与清理。
+- **.bat 批处理闪退陷阱**：`write_file` 默认以 UTF-8 编码写入文件，而 Windows `cmd.exe` 默认按 ANSI (GBK/CP936) 解析 `.bat`。一旦 `.bat` 内含有中文路径（如 `C:\Users\中文名`）、中文 `echo` 或中文注释，多字节错位会导致括号代码块语法崩溃并瞬间闪退。
+- **强制规范**：生成的 `.bat` 脚本必须 **100% 纯英文 ASCII**，路径一律使用 `%USERPROFILE%`、`%APPDATA%`、`%LOCALAPPDATA%` 环境变量，并内置自动 UAC 提权头：
+```bat
+@echo off
+net session >nul 2>&1
+if %errorlevel% neq 0 (
+    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
+    exit /b
+)
+```
 
 ### 2. Windows Update 30万+超长路径碎片删除
 `C:\Windows\SoftwareDistribution\Download` 经常积压数十万更新补丁碎片，目录嵌套深度超 260 字符（MAX_PATH）。

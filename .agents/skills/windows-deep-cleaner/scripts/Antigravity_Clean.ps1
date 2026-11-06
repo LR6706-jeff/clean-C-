@@ -1,6 +1,6 @@
-# Antigravity Deep Clean v3.0
-# Full 12-category Windows system drive cleanup
-# Usage: Run Antigravity_Clean.bat as Administrator (auto-elevates)
+# Antigravity Deep Clean v3.6
+# Full 13-category Windows system drive cleanup
+# Usage: Run DeepClean.bat / Antigravity_Clean.bat as Administrator (auto-elevates)
 # Or: powershell -NoProfile -ExecutionPolicy Bypass -File Antigravity_Clean.ps1
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -58,8 +58,8 @@ function Clean-Step {
 Clear-Host
 Write-Host ""
 Write-Host "  =============================================" -ForegroundColor Cyan
-Write-Host "    Antigravity Deep Clean v3.0" -ForegroundColor Cyan
-Write-Host "    12-category system drive cleanup" -ForegroundColor Cyan
+Write-Host "    Antigravity Deep Clean v3.6" -ForegroundColor Cyan
+Write-Host "    13-category system drive cleanup" -ForegroundColor Cyan
 Write-Host "  =============================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -82,16 +82,23 @@ Clear-RecycleBin -Force -ErrorAction SilentlyContinue
 Write-Host "  +-- OK  Recycle Bin emptied" -ForegroundColor Green
 Write-Host ""
 
-# 03 Windows Update download cache
+# 03 Windows Update download cache (use native rd /s /q to bypass MAX_PATH 260 limit)
 Write-Host "  +-- [03] Windows Update Download Cache" -ForegroundColor Yellow
 Stop-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
+Stop-Service -Name bits -Force -ErrorAction SilentlyContinue
 $b3 = Get-FolderSize @("C:\Windows\SoftwareDistribution\Download")
-Remove-Item "C:\Windows\SoftwareDistribution\Download\*" -Recurse -Force -ErrorAction SilentlyContinue
+cmd.exe /c 'rd /s /q "C:\Windows\SoftwareDistribution\Download" & mkdir "C:\Windows\SoftwareDistribution\Download"' 2>&1 | Out-Null
 $f3 = [Math]::Max(0, $b3 - (Get-FolderSize @("C:\Windows\SoftwareDistribution\Download")))
+Start-Service -Name bits -ErrorAction SilentlyContinue
 Start-Service -Name wuauserv -ErrorAction SilentlyContinue
 Write-Host "  +-- OK  Freed: $(Format-Bytes $f3)" -ForegroundColor $(if ($f3 -gt 0) { "Green" } else { "DarkGray" })
 Write-Host ""
 $total += $f3
+
+# 03b WorkBuddy & Dev Temp Caches
+$total += Clean-Step -Label "[03b] WorkBuddy & Dev Temp Caches" `
+    -Dirs  @("$env:USERPROFILE\.workbuddy\logs", "$env:USERPROFILE\.cache", "$env:LOCALAPPDATA\pip\cache", "$env:LOCALAPPDATA\npm-cache") `
+    -Paths @("$env:USERPROFILE\.workbuddy\logs\*", "$env:USERPROFILE\.cache\*", "$env:LOCALAPPDATA\pip\cache\*", "$env:LOCALAPPDATA\npm-cache\*")
 
 # 04 Delivery Optimization
 $total += Clean-Step -Label "[04] Delivery Optimization Cache" `
